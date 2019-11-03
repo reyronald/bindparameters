@@ -24,7 +24,7 @@ func Into(
 	r *http.Request,
 	getURLParam func(key string) string,
 	fn interface{},
-) {
+) []reflect.Value {
 	// Input validation
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
@@ -106,16 +106,18 @@ func Into(
 	}
 
 	// Call fn
-	if fnValue := reflect.ValueOf(fn); hasBody {
-		fnValue.Call([]reflect.Value{
+	fnValue := reflect.ValueOf(fn)
+	if hasBody {
+		returnValues := fnValue.Call([]reflect.Value{
 			inputValue,
 			reflect.Indirect(reflect.ValueOf(complexTypeValue)),
 		})
-	} else {
-		fnValue.Call([]reflect.Value{
-			inputValue,
-		})
+		return returnValues
 	}
+	returnValues := fnValue.Call([]reflect.Value{
+		inputValue,
+	})
+	return returnValues
 }
 
 func convertToKindAndSetValueIn(valueToSet string, kind reflect.Kind, dstValue reflect.Value) {

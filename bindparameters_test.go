@@ -8,9 +8,10 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/steinfletcher/apitest"
+	"github.com/stretchr/testify/assert"
 )
 
-func bindChiParametersInto(r *http.Request, fn interface{}) {
+func bindChiParametersInto(r *http.Request, fn interface{}) (string, string) {
 	getURLParam := func(key string) string {
 		if rctx := chi.RouteContext(r.Context()); rctx != nil {
 			for k := len(rctx.URLParams.Keys) - 1; k >= 0; k-- {
@@ -22,7 +23,14 @@ func bindChiParametersInto(r *http.Request, fn interface{}) {
 
 		return ""
 	}
-	Into(r, getURLParam, fn)
+	returnValues := Into(r, getURLParam, fn)
+	if lenV := len(returnValues); lenV == 0 {
+		return "", ""
+	} else if lenV == 1 {
+		return returnValues[0].Interface().(string), ""
+	} else {
+		return returnValues[0].Interface().(string), returnValues[1].Interface().(string)
+	}
 }
 
 type application struct {
@@ -211,4 +219,29 @@ func TestRequestBody(t *testing.T) {
 		Status(http.StatusOK).
 		End()
 
+}
+
+func TestReturnValues(t *testing.T) {
+	router := newApp().Router
+
+	router.Get("/user/{id}/post/{postId}", func(w http.ResponseWriter, r *http.Request) {
+		s, ss := bindChiParametersInto(r, func(params struct {
+			ID     int `json:"id"`
+			PostID int `json:"postId"`
+		}) (string, string) {
+			render.JSON(w, r, params)
+			return "hello", "world"
+		})
+
+		assert.Equal(t, s, "hello")
+		assert.Equal(t, ss, "world")
+	})
+
+	apitest.New().
+		Handler(router).
+		Get("/user/1234/post/9876").
+		Expect(t).
+		Body(`{"id": 1234, "postId": 9876}`).
+		Status(http.StatusOK).
+		End()
 }

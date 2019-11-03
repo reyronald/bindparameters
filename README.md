@@ -15,7 +15,7 @@ func Into(
 	r *http.Request,
 	getURLParam func(key string) string,
 	fn interface{},
-)
+) []reflect.Value
 ```
 
 `Into` will automatically bind or map parameters from the HTTP request `r` into the arguments of `fn`. `fn` must be a function with either one or two arguments. The first argument should be a struct with fields that map to URL and query string parameters. The second argument is optional and will be used to bind/map the JSON payload of the request into it. If your endpoint doesn't have any URL or query string parameters (or you don't need to access them in your handler), you still need to provide the first argument to the function, but in that case you can pass `nil`.
